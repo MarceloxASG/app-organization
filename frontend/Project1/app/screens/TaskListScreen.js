@@ -1,5 +1,12 @@
 import { useState, useCallback } from "react";
-import { View, Text, Button, FlatList, TouchableOpacity } from "react-native";
+import {
+  View,
+  Text,
+  Button,
+  FlatList,
+  TouchableOpacity,
+  Alert,
+} from "react-native";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { getTasks, deleteTask, updateTask } from "../services/api";
 import { useFocusEffect } from "@react-navigation/native";
@@ -17,7 +24,6 @@ export default function TaskListScreen({ navigation }) {
     }
   };
 
-  // 🔥 Se ejecuta cada vez que la pantalla gana el foco
   useFocusEffect(
     useCallback(() => {
       fetchData();
@@ -34,12 +40,40 @@ export default function TaskListScreen({ navigation }) {
     setTasks(tasks.map((t) => (t._id === id ? updated.data : t)));
   };
 
+  // 🧩 Nueva función: Cerrar sesión
+  const handleLogout = () => {
+    Alert.alert(
+      "Cerrar sesión",
+      "¿Estás seguro de que deseas salir?",
+      [
+        { text: "Cancelar", style: "cancel" },
+        {
+          text: "Sí, salir",
+          style: "destructive",
+          onPress: async () => {
+            await AsyncStorage.removeItem("token");
+            navigation.reset({
+              index: 0,
+              routes: [{ name: "Login" }], // 👈 Nombre de la pantalla de login
+            });
+          },
+        },
+      ],
+      { cancelable: true }
+    );
+  };
+
   return (
     <View style={{ flex: 1, padding: 20 }}>
-      <Button
-        title="Agregar tarea"
-        onPress={() => navigation.navigate("TaskForm", { token })}
-      />
+      {/* 🔥 Botón de Logout arriba */}
+      <Button title="Cerrar sesión" color="orange" onPress={handleLogout} />
+
+      <View style={{ marginVertical: 10 }}>
+        <Button
+          title="Agregar tarea"
+          onPress={() => navigation.navigate("TaskForm", { token })}
+        />
+      </View>
 
       <FlatList
         data={tasks}
@@ -57,12 +91,14 @@ export default function TaskListScreen({ navigation }) {
                 {item.title}
               </Text>
             </TouchableOpacity>
+
             <Button
               title="Editar"
               onPress={() =>
                 navigation.navigate("TaskForm", { token, task: item })
               }
             />
+
             <Button
               title="Eliminar"
               color="red"
